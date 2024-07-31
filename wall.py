@@ -10,6 +10,43 @@ class Wall:
         self.resizing = False
         self.resize_dir = None
 
+    def is_colliding(self, x, y, radius):
+        # Check if the point (x, y) with the given radius is colliding with the wall
+        closest_x = max(self.rect.left, min(x, self.rect.right))
+        closest_y = max(self.rect.top, min(y, self.rect.bottom))
+        distance_x = x - closest_x
+        distance_y = y - closest_y
+        return (distance_x ** 2 + distance_y ** 2) < (radius ** 2)
+
+    def get_collision_point(self, x1, y1, x2, y2):
+        # Calculate the intersection point of a line (x1, y1) -> (x2, y2) with the wall's rectangle
+        rect_lines = [
+            ((self.rect.left, self.rect.top), (self.rect.right, self.rect.top)),  # Top
+            ((self.rect.right, self.rect.top), (self.rect.right, self.rect.bottom)),  # Right
+            ((self.rect.right, self.rect.bottom), (self.rect.left, self.rect.bottom)),  # Bottom
+            ((self.rect.left, self.rect.bottom), (self.rect.left, self.rect.top))  # Left
+        ]
+
+        def line_intersection(line1, line2):
+            (x1, y1), (x2, y2) = line1
+            (x3, y3), (x4, y4) = line2
+            denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4)
+            if denom == 0:
+                return None
+            px = ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / denom
+            py = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / denom
+            if (min(x1, x2) <= px <= max(x1, x2) and min(y1, y2) <= py <= max(y1, y2) and
+                    min(x3, x4) <= px <= max(x3, x4) and min(y3, y4) <= py <= max(y3, y4)):
+                return px, py
+            return None
+
+        lidar_line = ((x1, y1), (x2, y2))
+        for rect_line in rect_lines:
+            collision_point = line_intersection(lidar_line, rect_line)
+            if collision_point:
+                return collision_point
+        return None 
+
     def draw(self, screen):
         pygame.draw.rect(screen, BROWN, self.rect)  # Fill the wall with brown
         edge_color = BLUE if self.selected else BLACK
@@ -73,4 +110,3 @@ class Wall:
     @staticmethod
     def from_dict(data):
         return Wall(data['x'], data['y'], data['width'], data['height'])
-
