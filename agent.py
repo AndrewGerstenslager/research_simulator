@@ -15,8 +15,8 @@ class Agent:
         self.x = x
         self.y = y
         self.direction = direction  # in degrees
-        self.linear_speed = 0.1
-        self.angular_speed = 0.1
+        self.linear_speed = 10
+        self.angular_speed = 5
         self.lidar_max_range = 200
         self.lidar_angles = [i * (360 / num_lidar_beams) for i in range(num_lidar_beams)]
         self.lidar_ranges = []
@@ -29,8 +29,9 @@ class Agent:
         end_x = self.x + AGENT_RADIUS * math.cos(math.radians(self.direction))
         end_y = self.y - AGENT_RADIUS * math.sin(math.radians(self.direction))
          
-        # Draw the LiDAR beams
-        self.draw_lidar(screen)
+        # Draw the LiDAR beams if visible
+        if self.lidar_visible:
+            self.draw_lidar(screen)
 
         # Draw the circle
         pygame.draw.circle(screen, (0, 0, 255), (self.x, self.y), AGENT_RADIUS)
@@ -39,30 +40,34 @@ class Agent:
         pygame.draw.line(screen, (255, 0, 0), (self.x, self.y), (end_x, end_y), 2)
 
     def draw_lidar(self, screen):
+        for angle, distance in zip(self.lidar_angles, self.lidar_ranges):
+            laser_angle = math.radians(self.direction + angle)
+            end_x = self.x + distance * math.cos(laser_angle)
+            end_y = self.y - distance * math.sin(laser_angle)
+            pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (end_x, end_y), 1)
+
+    def scan(self):
         self.lidar_ranges = []
-        if self.lidar_visible:
-            for angle in self.lidar_angles:
-                laser_angle = math.radians(self.direction + angle)
-                end_x = self.x + self.lidar_max_range * math.cos(laser_angle)
-                end_y = self.y - self.lidar_max_range * math.sin(laser_angle)
-                
-                # Check for collisions with boundaries
-                end_x, end_y, boundary_distance = self.check_collision_with_boundaries(end_x, end_y)
-                
-                # Check for collisions with walls
-                wall_distance = self.lidar_max_range
-                for wall in self.walls:
-                    collision_point = wall.get_collision_point(self.x, self.y, end_x, end_y)
-                    if collision_point:
-                        end_x, end_y = collision_point
-                        wall_distance = math.sqrt((end_x - self.x) ** 2 + (end_y - self.y) ** 2)
-                        break
-                
-                # Calculate the distance to the collision point
-                distance = min(boundary_distance, wall_distance)
-                self.lidar_ranges.append(distance)
-                
-                pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (end_x, end_y), 1)
+        for angle in self.lidar_angles:
+            laser_angle = math.radians(self.direction + angle)
+            end_x = self.x + self.lidar_max_range * math.cos(laser_angle)
+            end_y = self.y - self.lidar_max_range * math.sin(laser_angle)
+            
+            # Check for collisions with boundaries
+            end_x, end_y, boundary_distance = self.check_collision_with_boundaries(end_x, end_y)
+            
+            # Check for collisions with walls
+            wall_distance = self.lidar_max_range
+            for wall in self.walls:
+                collision_point = wall.get_collision_point(self.x, self.y, end_x, end_y)
+                if collision_point:
+                    end_x, end_y = collision_point
+                    wall_distance = math.sqrt((end_x - self.x) ** 2 + (end_y - self.y) ** 2)
+                    break
+            
+            # Calculate the distance to the collision point
+            distance = min(boundary_distance, wall_distance)
+            self.lidar_ranges.append(distance)
 
     def check_collision_with_boundaries(self, end_x, end_y):
         dx = end_x - self.x
@@ -81,7 +86,7 @@ class Agent:
         if dy > 0:
             t = (BOTTOM_BOUNDARY - self.y) / dy if dy != 0 else float('inf')
             if 0 <= t <= 1:
-                collisions.append((self.x + t * dx, BOTTOM_BOUNDARY, t))
+                collisions.appennd((self.x + t * dx, BOTTOM_BOUNDARY, t))
         
         # Left boundary
         if dx < 0:
@@ -103,7 +108,7 @@ class Agent:
             return collision_x, collision_y, boundary_distance
         
         # No collision with boundaries
-        return end_x, end_y, float('inf') 
+        return end_x, end_y, float('inf')
 
     def detect_collision(self, move_forward=True):
         # Calculate the next position
