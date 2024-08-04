@@ -1,39 +1,53 @@
+✓ - Task is done 
+✗ - Task is not done
+
 obstacle:
-    create an obstacle parent class
-    give the class geometry definition
-    give the class a location that the geometry is centered on
-    give it a method for collision that determines whether a point is within the geometry
+    ✓ create an obstacle parent class
+    ✓ give the class geometry definition
+    ✓ give the class a location that the geometry is centered on
+    ✓ give it a method for collision that determines whether a point is within the geometry
 
 wall(obstacle):
-    create a rectangle child class that inherits the obstacle class and implements the definition
+    ✓   create a rectangle child class that inherits the obstacle class and implements the definition
 
 environment:
-    create another gui that you can build an environment
-        button to load an environment
-        grid lines:
+    ✓ create another gui that you can build an environment
+        ✓ button to load an environment
+        ✗ grid lines:
             button to show grid lines?
             button to snap to grid lines?
             dropdown to change the grid line resolution?
 
-        button to create a wall. you can click on the wall and its edges change color and you can click on the corners or edges to resize it
-        button to save an environment as a file definition (maybe json or some serialized python thing like pickle)
+        ✗ multi scale environment:
+            do I want to be able to create larger environments and be able to set a resolution or size of the environment
+            zooming feature
+            agent size will vary on screen based on environment
 
-    be able to load environment into the main engine
+        ✓ button to create a wall. you can click on the wall and its edges change color and you can click on the corners or edges to resize it
+        ✗ button to save an environment as a file definition (maybe json or some serialized python thing like pickle)
+
+    ✓ be able to load environment into the main engine
 
 agent:
-    create the lasers that project out from the agent's center to the max range
-    make the lasers cast their ranges with a method that takes in the environment data
-        if the laser intersects with a boundary or wall the laser ends and reports that data
-    render the lasers as well with their angle and distance
+    ✓ create the lasers that project out from the agent's center to the max range
+    ✓ make the lasers cast their ranges with a method that takes in the environment data
+        ✓ if the laser intersects with a boundary or wall the laser ends and reports that data
+    ✓ render the lasers as well with their angle and distance
 
 plot:
-    create a defined plot space
-    integrate the radial selection buttons to show a plot
-    create a matplotlib radial plot to show the lidar distances from the robot
-    create a scatter plot that shows some arbitrary distribution
+    ✗ create a defined plot space
+    ✗ integrate the radial selection buttons to show a plot
+    ✗ create a matplotlib radial plot to show the lidar distances from the robot
+    ✗ create a scatter plot that shows some arbitrary distribution
 
 place_cells:
-    copy in the agent and place cell files from the senior design project
-    modify the simulation ROS2 hooks to be the new sim inputs/outputs
-        optionally look at the class definition and define how the place cell model interacts with the agent class and how the agent interacts with the environment
-    
+    ✗ copy in the agent and place cell files from the senior design project
+    ✗ modify the simulation ROS2 hooks to be the new sim inputs/outputs
+        ✗ optionally look at the class definition and define how the place cell model interacts with the agent class and how the agent interacts with the environment
+
+controller:
+    ✓ create an abstract controller class that can be inherited by other classes for controlling the agent
+    ✓ give the class generic methods for data collection and decision making
+    ✓ implement a basic controller to demo the concept
+    ✗ create a button to pause and start the controller
+    ✗ create an indicator to show if the sim is paused or not
