@@ -49,8 +49,8 @@ controller:
     ✓ create an abstract controller class that can be inherited by other classes for controlling the agent
     ✓ give the class generic methods for data collection and decision making
     ✓ implement a basic controller to demo the concept
-    ✗ create a button to pause and start the controller
-    ✗ create an indicator to show if the sim is paused or not
+    ✓ create a button to pause and start the controller
+    ✓ create an indicator to show if the sim is paused or not
 
 UI:
   ✗ add a button and text field to control the clock rate of the sim
