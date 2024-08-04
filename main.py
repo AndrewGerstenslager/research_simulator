@@ -80,7 +80,8 @@ text_surfaces = [
         font.render('See LiDAR Shortcut: i', True, BLACK),
         font.render('Quit sim shortcut: q', True, BLACK),
         font.render('Toggle Controller: c', True, BLACK),
-        font.render("Controller ENABLED" if controller.running else "Controller DISABLED", True, GREEN if controller.running else RED)
+        font.render("Controller ENABLED" if controller.running else "Controller DISABLED", True, GREEN if controller.running else RED),
+        font.render('Move agent manually: Arrow Keys', True, BLACK),
 ]
 
 # Main game loop
@@ -135,7 +136,7 @@ while running:
         button.draw(screen)
     
     # Draw text
-    x,y = 850,500  
+    x,y = 850,450  
     for surface in text_surfaces:
         screen.blit(surface, (x,y))
         y += 20

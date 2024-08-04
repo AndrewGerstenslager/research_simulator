@@ -86,7 +86,7 @@ class Agent:
         if dy > 0:
             t = (BOTTOM_BOUNDARY - self.y) / dy if dy != 0 else float('inf')
             if 0 <= t <= 1:
-                collisions.appennd((self.x + t * dx, BOTTOM_BOUNDARY, t))
+                collisions.append((self.x + t * dx, BOTTOM_BOUNDARY, t))
         
         # Left boundary
         if dx < 0:
