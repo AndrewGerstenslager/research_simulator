@@ -16,6 +16,8 @@ class BasicController(Controller):
             self.move = "forward"
 
     def move_agent(self):
+        if not self.running: return
+
         if self.move == "left":
             self.agent.rotate_left()
         elif self.move == "forward":

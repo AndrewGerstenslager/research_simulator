@@ -8,9 +8,44 @@ from button import Button
 from colors import *
 from basic_controller import BasicController
 
+def load_walls_file_dialogue():
+    '''
+    Uses the tkinter file dialogue to select the file to open. 
+    Calls open_walls after file selected.
+    '''
+    global root
+    root = Tk()
+    root.withdraw()
+    load_walls(filedialog.askopenfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")]))
+
+def load_walls(filename):
+    '''
+    Takes the file name and loads in the file.
+    Puts all wall objects into the wall object and updates agent's internal memory.
+    '''
+    global agent
+    global walls
+    if filename:
+        with open(filename, 'r') as f:
+            walls = [Wall.from_dict(data) for data in json.load(f)]
+        walls = walls 
+        agent.walls = walls
+
+def toggle_laser():
+    '''Thin wrapper to update whether to render LiDAR laser beams.'''
+    global agent
+    agent.lidar_visible = not agent.lidar_visible
+
+def toggle_controller_running():
+    '''Thin wrapper to update whether the controller is running or not.'''
+    global controller, text_surfaces
+    controller.running = not controller.running
+    text_surfaces[4] = font.render("Controller ENABLED" if controller.running else "Controller DISABLED", True, GREEN if controller.running else RED)
+
 # Initialize pygame
 pygame.init()
 
+# Define the clock for pygame
 clock = pygame.time.Clock()
 
 # Set up the display window
@@ -23,43 +58,29 @@ RIGHT_BOUNDARY = 800
 TOP_BOUNDARY = 0
 BOTTOM_BOUNDARY = 600
 
+# Define core components of sim
 walls = []
 agent = Agent(400, 300, 0, walls)
 controller = BasicController(model = None, agent = agent)
 
-def open_file_dialog():
-    global root
-    root = Tk()
-    root.withdraw()
-    load_walls(filedialog.askopenfilename(defaultextension=".json", filetypes=[("JSON files", "*.json")]))
-
-def load_walls(filename):
-    global agent
-    global walls
-    if filename:
-        with open(filename, 'r') as f:
-            walls = [Wall.from_dict(data) for data in json.load(f)]
-        walls = walls 
-        agent.walls = walls
-
+# Load in walls
 load_walls('test.json')
-
-def toggle_laser():
-    global agent
-    agent.lidar_visible = not agent.lidar_visible
 
 # Define buttons
 buttons = [
-    Button(850, 50, 100, 50, 'Load Walls', open_file_dialog),
+    Button(850, 50, 100, 50, 'Load Walls', load_walls_file_dialogue),
     Button(850, 110, 100, 50, "See LiDAR", toggle_laser),
+    Button(850, 170, 100, 50, "Toggle Controller", toggle_controller_running)
 ]
 
-# Define on-screen text
+# Define on-screen text that renders in a block
 font = pygame.font.Font(None, 24)
 text_surfaces = [
         font.render('Load Wall Shortcut: u', True, BLACK),
         font.render('See LiDAR Shortcut: i', True, BLACK),
         font.render('Quit sim shortcut: q', True, BLACK),
+        font.render('Toggle Controller: c', True, BLACK),
+        font.render("Controller ENABLED" if controller.running else "Controller DISABLED", True, GREEN if controller.running else RED)
 ]
 
 # Main game loop
@@ -75,6 +96,8 @@ while running:
                 buttons[0].action()
             if event.key == pygame.K_i:
                 buttons[1].action()
+            if event.key == pygame.K_c:
+                buttons[2].action()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for button in buttons:
                 if button.is_clicked(event.pos):
@@ -112,7 +135,7 @@ while running:
         button.draw(screen)
     
     # Draw text
-    x,y = 850,300  
+    x,y = 850,500  
     for surface in text_surfaces:
         screen.blit(surface, (x,y))
         y += 20
@@ -120,7 +143,7 @@ while running:
     # Update the display
     pygame.display.flip()
 
-    clock.tick(600)
+    clock.tick(60)
 
 # Quit pygame
 pygame.quit()

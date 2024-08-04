@@ -4,6 +4,7 @@ class Controller(ABC):
     def __init__(self, model, agent):
         self.model = model
         self.agent = agent
+        self.running = False
 
     @abstractmethod
     def handle_input(self):
