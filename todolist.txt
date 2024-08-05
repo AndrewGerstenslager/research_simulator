@@ -51,6 +51,7 @@ controller:
     ✓ implement a basic controller to demo the concept
     ✓ create a button to pause and start the controller
     ✓ create an indicator to show if the sim is paused or not
+    ✗ create a controller for place cells 
 
 UI:
   ✗ add a button and text field to control the clock rate of the sim
