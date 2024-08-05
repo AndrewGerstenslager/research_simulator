@@ -6,7 +6,7 @@ from agent import Agent
 from wall import Wall
 from button import Button
 from colors import *
-from basic_controller import BasicController
+from controllers.basic_controller import BasicController
 
 def load_walls_file_dialogue():
     '''
@@ -64,7 +64,7 @@ agent = Agent(400, 300, 0, walls)
 controller = BasicController(model = None, agent = agent)
 
 # Load in walls
-load_walls('test.json')
+load_walls('worlds/test.json')
 
 # Define buttons
 buttons = [
