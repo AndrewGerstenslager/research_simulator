@@ -1,25 +1,26 @@
 from controllers.controller import Controller
 from agent import Agent
+import random
 
-class BasicController(Controller):
+class RandomController(Controller):
     def __init__(self, model, agent : Agent):
         super().__init__(model, agent)
         self.move = None 
+        self.choices = [direction for direction in range(0, 360, 45)]
 
     def handle_input(self):
-        #print(f'bump sensor {self.agent.bump_sensor}')
-        #print(f'lidar ranges {self.agent.lidar_ranges}')
-        #print(f'position {self.agent.x,self.agent.y}, direction {self.agent.direction}')
         if self.agent.bump_sensor:
-            self.move = "left"
+            self.move = random.choice(self.choices)
         else:
-            self.move = "forward"
+            self.move = self.agent.direction
 
     def move_agent(self):
         if not self.running: return
 
-        if self.move == "left":
+        rotation = self.agent.direction
+        while rotation != self.move:
             self.agent.rotate_left()
-        elif self.move == "forward":
-            self.agent.move_forward()
+            rotation = self.agent.direction
+        
+        self.agent.move_forward()
 
