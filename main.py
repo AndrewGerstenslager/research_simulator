@@ -53,7 +53,7 @@ def set_clock_rate():
 
 def set_max_speed():
     '''Sets the clock rate to 0 (max speed) or back to the previous clock rate.'''
-    global clock_rate, clock, max_speed, text_surfaces
+    global clock_rate, clock, max_speed, text_surfaces, previous_clock_rate
     if max_speed:
         max_speed = False
         clock_rate = previous_clock_rate
@@ -171,6 +171,8 @@ while running:
                 buttons[1].action()
             if event.key == pygame.K_c:
                 buttons[2].action()
+            if event.key == pygame.K_m:
+                buttons[4].action()
         elif event.type == pygame.MOUSEBUTTONDOWN:
             for button in buttons:
                 if button.is_clicked(event.pos):

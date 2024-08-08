@@ -64,7 +64,6 @@ class RandomController(Controller):
                 self.move = 'same'
         else:
             self.handle_input()
-            print(f"Agent is moving {self.move}")
 
             if self.move == 'same':
                 self.agent.move_forward()

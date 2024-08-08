@@ -11,7 +11,7 @@ TOP_BOUNDARY = 0
 BOTTOM_BOUNDARY = 600
 
 class Agent:
-    def __init__(self, x, y, direction, walls, num_lidar_beams=36):
+    def __init__(self, x, y, direction, walls, num_lidar_beams=360):
         self.x = x
         self.y = y
         self.direction = direction  # in degrees
