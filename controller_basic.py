@@ -1,4 +1,4 @@
-from controllers.controller import Controller
+from controller import Controller
 from agent import Agent
 
 class BasicController(Controller):

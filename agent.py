@@ -107,7 +107,6 @@ class Agent:
             boundary_distance = math.sqrt((collision_x - self.x)**2 + (collision_y - self.y)**2)
             return collision_x, collision_y, boundary_distance
         
-        # No collision with boundaries
         return end_x, end_y, float('inf')
 
     def detect_collision(self, move_forward=True):

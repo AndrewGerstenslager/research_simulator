@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
+from agent import Agent
 
 class Controller(ABC):
-    def __init__(self, model, agent):
+    def __init__(self, model, agent : Agent):
         self.model = model
         self.agent = agent
         self.running = False
