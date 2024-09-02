@@ -1,5 +1,6 @@
 import math
 import pygame
+from colors import RED
 
 # Define the radius of the agent
 AGENT_RADIUS = 20
@@ -10,15 +11,18 @@ RIGHT_BOUNDARY = 800
 TOP_BOUNDARY = 0
 BOTTOM_BOUNDARY = 600
 
+
 class Agent:
-    def __init__(self, x, y, direction, walls, num_lidar_beams=360):
+    def __init__(self, x, y, direction, walls, num_lidar_beams=720):
         self.x = x
         self.y = y
         self.direction = direction  # in degrees
-        self.linear_speed = 10
-        self.angular_speed = 5
-        self.lidar_max_range = 200
-        self.lidar_angles = [i * (360 / num_lidar_beams) for i in range(num_lidar_beams)]
+        self.linear_speed = 5
+        self.angular_speed = 2.5
+        self.lidar_max_range = 2000
+        self.lidar_angles = [
+            i * (360 / num_lidar_beams) for i in range(num_lidar_beams)
+        ]
         self.lidar_ranges = []
         self.lidar_visible = False
         self.bump_sensor = False
@@ -28,7 +32,7 @@ class Agent:
         # Calculate the end point of the arrow
         end_x = self.x + AGENT_RADIUS * math.cos(math.radians(self.direction))
         end_y = self.y - AGENT_RADIUS * math.sin(math.radians(self.direction))
-         
+
         # Draw the LiDAR beams if visible
         if self.lidar_visible:
             self.draw_lidar(screen)
@@ -45,69 +49,87 @@ class Agent:
             end_x = self.x + distance * math.cos(laser_angle)
             end_y = self.y - distance * math.sin(laser_angle)
             pygame.draw.line(screen, (0, 255, 0), (self.x, self.y), (end_x, end_y), 1)
+            # Debug visualization
+            pygame.draw.circle(
+                screen, RED, (int(end_x), int(end_y)), 3
+            )  # Draw the laser endpoint
 
     def scan(self):
         self.lidar_ranges = []
+        precision = 0  # Number of decimal places to round to, adjust as needed
+        agent_x, agent_y = round(self.x, precision), round(self.y, precision)
+
         for angle in self.lidar_angles:
             laser_angle = math.radians(self.direction + angle)
-            end_x = self.x + self.lidar_max_range * math.cos(laser_angle)
-            end_y = self.y - self.lidar_max_range * math.sin(laser_angle)
-            
-            # Check for collisions with boundaries
-            end_x, end_y, boundary_distance = self.check_collision_with_boundaries(end_x, end_y)
-            
-            # Check for collisions with walls
-            wall_distance = self.lidar_max_range
-            for wall in self.walls:
-                collision_point = wall.get_collision_point(self.x, self.y, end_x, end_y)
-                if collision_point:
-                    end_x, end_y = collision_point
-                    wall_distance = math.sqrt((end_x - self.x) ** 2 + (end_y - self.y) ** 2)
-                    break
-            
-            # Calculate the distance to the collision point
-            distance = min(boundary_distance, wall_distance)
-            self.lidar_ranges.append(distance)
+            end_x = agent_x + self.lidar_max_range * math.cos(laser_angle)
+            end_y = agent_y - self.lidar_max_range * math.sin(laser_angle)
 
-    def check_collision_with_boundaries(self, end_x, end_y):
-        dx = end_x - self.x
-        dy = end_y - self.y
-        
+            # Round the laser endpoints to reduce precision
+            end_x = round(end_x, precision)
+            end_y = round(end_y, precision)
+
+            # Initialize the minimum distance with the max range
+            min_distance = self.lidar_max_range
+
+            # Check for collisions with walls first
+            for wall in self.walls:
+                collision_distance = wall.line_intersection(
+                    agent_x, agent_y, end_x, end_y
+                )
+                if collision_distance is not None:
+                    min_distance = min(min_distance, collision_distance)
+
+            # Check for collisions with boundaries only if no wall collision is closer
+            boundary_collision = self.check_lidar_collision_with_boundaries(
+                agent_x, agent_y, end_x, end_y
+            )
+            if boundary_collision[2] < min_distance:
+                min_distance = boundary_collision[2]
+
+            # Append the closest distance to the lidar_ranges
+            self.lidar_ranges.append(min_distance)
+
+    def check_lidar_collision_with_boundaries(self, start_x, start_y, end_x, end_y):
+        dx = end_x - start_x
+        dy = end_y - start_y
+
         # Check collision with all four boundaries
         collisions = []
-        
+
         # Top boundary
         if dy < 0:
-            t = (TOP_BOUNDARY - self.y) / dy if dy != 0 else float('inf')
+            t = (TOP_BOUNDARY - start_y) / dy if dy != 0 else float("inf")
             if 0 <= t <= 1:
-                collisions.append((self.x + t * dx, TOP_BOUNDARY, t))
-        
+                collisions.append((start_x + t * dx, TOP_BOUNDARY, t))
+
         # Bottom boundary
         if dy > 0:
-            t = (BOTTOM_BOUNDARY - self.y) / dy if dy != 0 else float('inf')
+            t = (BOTTOM_BOUNDARY - start_y) / dy if dy != 0 else float("inf")
             if 0 <= t <= 1:
-                collisions.append((self.x + t * dx, BOTTOM_BOUNDARY, t))
-        
+                collisions.append((start_x + t * dx, BOTTOM_BOUNDARY, t))
+
         # Left boundary
         if dx < 0:
-            t = (LEFT_BOUNDARY - self.x) / dx if dx != 0 else float('inf')
+            t = (LEFT_BOUNDARY - start_x) / dx if dx != 0 else float("inf")
             if 0 <= t <= 1:
-                collisions.append((LEFT_BOUNDARY, self.y + t * dy, t))
-        
+                collisions.append((LEFT_BOUNDARY, start_y + t * dy, t))
+
         # Right boundary
         if dx > 0:
-            t = (RIGHT_BOUNDARY - self.x) / dx if dx != 0 else float('inf')
+            t = (RIGHT_BOUNDARY - start_x) / dx if dx != 0 else float("inf")
             if 0 <= t <= 1:
-                collisions.append((RIGHT_BOUNDARY, self.y + t * dy, t))
-        
+                collisions.append((RIGHT_BOUNDARY, start_y + t * dy, t))
+
         if collisions:
             # Sort collisions by distance (represented by t)
             collisions.sort(key=lambda c: c[2])
             collision_x, collision_y, t = collisions[0]
-            boundary_distance = math.sqrt((collision_x - self.x)**2 + (collision_y - self.y)**2)
+            boundary_distance = math.sqrt(
+                (collision_x - start_x) ** 2 + (collision_y - start_y) ** 2
+            )
             return collision_x, collision_y, boundary_distance
-        
-        return end_x, end_y, float('inf')
+
+        return end_x, end_y, self.lidar_max_range
 
     def detect_collision(self, move_forward=True):
         # Calculate the next position
@@ -119,8 +141,10 @@ class Agent:
             next_y = self.y + self.linear_speed * math.sin(math.radians(self.direction))
 
         # Check if the next position is within the boundaries considering the radius of the agent
-        if not (LEFT_BOUNDARY + AGENT_RADIUS <= next_x <= RIGHT_BOUNDARY - AGENT_RADIUS and
-                TOP_BOUNDARY + AGENT_RADIUS <= next_y <= BOTTOM_BOUNDARY - AGENT_RADIUS):
+        if not (
+            LEFT_BOUNDARY + AGENT_RADIUS <= next_x <= RIGHT_BOUNDARY - AGENT_RADIUS
+            and TOP_BOUNDARY + AGENT_RADIUS <= next_y <= BOTTOM_BOUNDARY - AGENT_RADIUS
+        ):
             return True
 
         # Check for collision with walls
