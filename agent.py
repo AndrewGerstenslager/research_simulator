@@ -54,7 +54,6 @@ class Agent:
 
     def scan(self):
         self.lidar_ranges = []
-        precision = 0  # Number of decimal places to round to, adjust as needed
         agent_x, agent_y = int(self.x), int(self.y)
 
         for angle in self.lidar_angles:
