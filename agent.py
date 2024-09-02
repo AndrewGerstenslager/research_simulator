@@ -2,9 +2,6 @@ import math
 import pygame
 from colors import RED
 
-# Define the radius of the agent
-AGENT_RADIUS = 20
-
 # Define the boundaries of the robot area
 LEFT_BOUNDARY = 0
 RIGHT_BOUNDARY = 800
@@ -17,8 +14,9 @@ class Agent:
         self.x = x
         self.y = y
         self.direction = direction  # in degrees
-        self.linear_speed = 5
-        self.angular_speed = 2.5
+        self.linear_speed = 10
+        self.body_radius = 20
+        self.angular_speed = 5
         self.lidar_max_range = 2000
         self.lidar_angles = [
             i * (360 / num_lidar_beams) for i in range(num_lidar_beams)
@@ -30,15 +28,15 @@ class Agent:
 
     def draw(self, screen):
         # Calculate the end point of the arrow
-        end_x = self.x + AGENT_RADIUS * math.cos(math.radians(self.direction))
-        end_y = self.y - AGENT_RADIUS * math.sin(math.radians(self.direction))
+        end_x = self.x + self.body_radius * math.cos(math.radians(self.direction))
+        end_y = self.y - self.body_radius * math.sin(math.radians(self.direction))
 
         # Draw the LiDAR beams if visible
         if self.lidar_visible:
             self.draw_lidar(screen)
 
         # Draw the circle
-        pygame.draw.circle(screen, (0, 0, 255), (self.x, self.y), AGENT_RADIUS)
+        pygame.draw.circle(screen, (0, 0, 255), (self.x, self.y), self.body_radius)
 
         # Draw the arrow
         pygame.draw.line(screen, (255, 0, 0), (self.x, self.y), (end_x, end_y), 2)
@@ -57,7 +55,7 @@ class Agent:
     def scan(self):
         self.lidar_ranges = []
         precision = 0  # Number of decimal places to round to, adjust as needed
-        agent_x, agent_y = round(self.x, precision), round(self.y, precision)
+        agent_x, agent_y = int(self.x), int(self.y)
 
         for angle in self.lidar_angles:
             laser_angle = math.radians(self.direction + angle)
@@ -65,8 +63,7 @@ class Agent:
             end_y = agent_y - self.lidar_max_range * math.sin(laser_angle)
 
             # Round the laser endpoints to reduce precision
-            end_x = round(end_x, precision)
-            end_y = round(end_y, precision)
+            end_x, end_y = int(end_x), int(end_y)
 
             # Initialize the minimum distance with the max range
             min_distance = self.lidar_max_range
@@ -142,17 +139,38 @@ class Agent:
 
         # Check if the next position is within the boundaries considering the radius of the agent
         if not (
-            LEFT_BOUNDARY + AGENT_RADIUS <= next_x <= RIGHT_BOUNDARY - AGENT_RADIUS
-            and TOP_BOUNDARY + AGENT_RADIUS <= next_y <= BOTTOM_BOUNDARY - AGENT_RADIUS
+            LEFT_BOUNDARY + self.body_radius
+            <= next_x
+            <= RIGHT_BOUNDARY - self.body_radius
+            and TOP_BOUNDARY + self.body_radius
+            <= next_y
+            <= BOTTOM_BOUNDARY - self.body_radius
         ):
             return True
 
         # Check for collision with walls
         for wall in self.walls:
-            if wall.is_colliding(next_x, next_y, AGENT_RADIUS):
+            if wall.is_colliding(next_x, next_y, self.body_radius):
                 return True
 
         return False
+
+    def try_move(self, move_forward=True):
+        original_speed = self.linear_speed
+        while self.linear_speed > 0:
+            if not self.detect_collision(move_forward):
+                if move_forward:
+                    self.x += self.linear_speed * math.cos(math.radians(self.direction))
+                    self.y -= self.linear_speed * math.sin(math.radians(self.direction))
+                else:
+                    self.x -= self.linear_speed * math.cos(math.radians(self.direction))
+                    self.y += self.linear_speed * math.sin(math.radians(self.direction))
+                self.bump_sensor = False
+                break
+            self.linear_speed -= 0.1
+        self.linear_speed = original_speed
+        if self.linear_speed <= 0:
+            self.bump_sensor = True
 
     def move_forward(self):
         if not self.detect_collision(move_forward=True):
@@ -184,6 +202,6 @@ class Agent:
         if keys[pygame.K_RIGHT]:
             self.rotate_right()
         if keys[pygame.K_UP]:
-            self.move_forward()
+            self.try_move(move_forward=True)
         if keys[pygame.K_DOWN]:
-            self.move_backward()
+            self.try_move(move_forward=False)
