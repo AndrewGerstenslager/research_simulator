@@ -1,5 +1,6 @@
-import pygame 
-from colors import *
+import pygame
+from constants import BLACK, WHITE
+
 
 class Button:
     def __init__(self, x, y, width, height, text, action, color=BLACK):
@@ -17,3 +18,4 @@ class Button:
 
     def is_clicked(self, pos):
         return self.rect.collidepoint(pos)
+

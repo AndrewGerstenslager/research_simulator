@@ -5,7 +5,15 @@ from tkinter import Tk, filedialog
 from agent import Agent
 from wall import Wall
 from button import Button
-from colors import *
+from constants import (
+    LEFT_BOUNDARY,
+    RIGHT_BOUNDARY,
+    TOP_BOUNDARY,
+    BOTTOM_BOUNDARY,
+    GREEN,
+    RED,
+    BLACK,
+)
 from controller_random import RandomController
 
 
@@ -88,12 +96,6 @@ clock = pygame.time.Clock()
 # Set up the display window
 screen = pygame.display.set_mode((1600, 600))
 pygame.display.set_caption("Simulation Window")
-
-# Define the boundaries of the robot area
-LEFT_BOUNDARY = 0
-RIGHT_BOUNDARY = 800
-TOP_BOUNDARY = 0
-BOTTOM_BOUNDARY = 600
 
 # Define core components of sim
 walls = []

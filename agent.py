@@ -1,12 +1,12 @@
 import math
 import pygame
-from colors import RED
-
-# Define the boundaries of the robot area
-LEFT_BOUNDARY = 0
-RIGHT_BOUNDARY = 800
-TOP_BOUNDARY = 0
-BOTTOM_BOUNDARY = 600
+from constants import (
+    LEFT_BOUNDARY,
+    RIGHT_BOUNDARY,
+    TOP_BOUNDARY,
+    BOTTOM_BOUNDARY,
+    RED,
+)
 
 
 class Agent:

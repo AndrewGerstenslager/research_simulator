@@ -1,6 +1,6 @@
 import pygame
 import math
-from colors import *
+from constants import *
 
 
 class Wall:
