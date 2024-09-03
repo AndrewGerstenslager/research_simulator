@@ -10,7 +10,31 @@ from constants import (
 
 
 class Agent:
-    def __init__(self, x, y, direction, walls, num_lidar_beams=720):
+    """
+    Represents an agent in a 2D environment with LiDAR capabilities.
+
+    The agent can move, rotate, and scan its environment using LiDAR.
+    It also has collision detection with walls and boundaries.
+    """
+
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        direction: float,
+        walls: list,
+        num_lidar_beams: int = 360,
+    ) -> None:
+        """
+        Initialize the Agent.
+
+        Args:
+            x (float): Initial x-coordinate of the agent.
+            y (float): Initial y-coordinate of the agent.
+            direction (float): Initial direction of the agent in degrees.
+            walls (list): List of Wall objects in the environment.
+            num_lidar_beams (int, optional): Number of LiDAR beams. Defaults to 360.
+        """
         self.x = x
         self.y = y
         self.direction = direction  # in degrees
@@ -21,12 +45,18 @@ class Agent:
         self.lidar_angles = [
             i * (360 / num_lidar_beams) for i in range(num_lidar_beams)
         ]
-        self.lidar_ranges = []
+        self.lidar_ranges: list[float] = []
         self.lidar_visible = False
         self.bump_sensor = False
         self.walls = walls
 
-    def draw(self, screen):
+    def draw(self, screen: pygame.Surface) -> None:
+        """
+        Draw the agent on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw on.
+        """
         # Calculate the end point of the arrow
         end_x = self.x + self.body_radius * math.cos(math.radians(self.direction))
         end_y = self.y - self.body_radius * math.sin(math.radians(self.direction))
@@ -41,7 +71,13 @@ class Agent:
         # Draw the arrow
         pygame.draw.line(screen, (255, 0, 0), (self.x, self.y), (end_x, end_y), 2)
 
-    def draw_lidar(self, screen):
+    def draw_lidar(self, screen: pygame.Surface) -> None:
+        """
+        Draw the LiDAR beams on the screen.
+
+        Args:
+            screen (pygame.Surface): The surface to draw on.
+        """
         for angle, distance in zip(self.lidar_angles, self.lidar_ranges):
             laser_angle = math.radians(self.direction + angle)
             end_x = self.x + distance * math.cos(laser_angle)
@@ -52,7 +88,12 @@ class Agent:
                 screen, RED, (int(end_x), int(end_y)), 3
             )  # Draw the laser endpoint
 
-    def scan(self):
+    def scan(self) -> None:
+        """
+        Perform a LiDAR scan of the environment.
+
+        Updates the lidar_ranges list with the distances to the nearest obstacles.
+        """
         self.lidar_ranges = []
         agent_x, agent_y = int(self.x), int(self.y)
 
@@ -85,7 +126,22 @@ class Agent:
             # Append the closest distance to the lidar_ranges
             self.lidar_ranges.append(min_distance)
 
-    def check_lidar_collision_with_boundaries(self, start_x, start_y, end_x, end_y):
+    def check_lidar_collision_with_boundaries(
+        self, start_x: float, start_y: float, end_x: float, end_y: float
+    ) -> tuple[float, float, float]:
+        """
+        Check for collisions between a LiDAR beam and the environment boundaries.
+
+        Args:
+            start_x (float): Starting x-coordinate of the LiDAR beam.
+            start_y (float): Starting y-coordinate of the LiDAR beam.
+            end_x (float): Ending x-coordinate of the LiDAR beam.
+            end_y (float): Ending y-coordinate of the LiDAR beam.
+
+        Returns:
+            tuple: (collision_x, collision_y, distance) of the nearest boundary collision,
+                   or (end_x, end_y, lidar_max_range) if no collision.
+        """
         dx = end_x - start_x
         dy = end_y - start_y
 
@@ -127,7 +183,16 @@ class Agent:
 
         return end_x, end_y, self.lidar_max_range
 
-    def detect_collision(self, move_forward=True):
+    def detect_collision(self, move_forward: bool = True) -> bool:
+        """
+        Detect if the agent will collide with walls or boundaries in its next move.
+
+        Args:
+            move_forward (bool): True if moving forward, False if moving backward.
+
+        Returns:
+            bool: True if a collision is detected, False otherwise.
+        """
         # Calculate the next position
         if move_forward:
             next_x = self.x + self.linear_speed * math.cos(math.radians(self.direction))
@@ -154,7 +219,13 @@ class Agent:
 
         return False
 
-    def try_move(self, move_forward=True):
+    def try_move(self, move_forward: bool = True) -> None:
+        """
+        Attempt to move the agent, reducing speed if necessary to avoid collisions.
+
+        Args:
+            move_forward (bool): True if moving forward, False if moving backward.
+        """
         original_speed = self.linear_speed
         while self.linear_speed > 0:
             if not self.detect_collision(move_forward):
@@ -171,31 +242,27 @@ class Agent:
         if self.linear_speed <= 0:
             self.bump_sensor = True
 
-    def move_forward(self):
-        if not self.detect_collision(move_forward=True):
-            self.x += self.linear_speed * math.cos(math.radians(self.direction))
-            self.y -= self.linear_speed * math.sin(math.radians(self.direction))
-            self.bump_sensor = False
-        else:
-            self.bump_sensor = True
-
-    def move_backward(self):
-        if not self.detect_collision(move_forward=False):
-            self.x -= self.linear_speed * math.cos(math.radians(self.direction))
-            self.y += self.linear_speed * math.sin(math.radians(self.direction))
-            self.bump_sensor = False
-        else:
-            self.bump_sensor = True
-
-    def rotate_left(self):
+    def rotate_left(self) -> None:
+        """
+        Rotate the agent to the left.
+        """
         self.direction = (self.direction + self.angular_speed) % 360
         self.bump_sensor = False
 
-    def rotate_right(self):
+    def rotate_right(self) -> None:
+        """
+        Rotate the agent to the right.
+        """
         self.direction = (self.direction - self.angular_speed) % 360
         self.bump_sensor = False
 
-    def handle_move_keys(self, keys):
+    def handle_move_keys(self, keys: pygame.key.ScancodeWrapper) -> None:
+        """
+        Handle keyboard input for agent movement.
+
+        Args:
+            keys (pygame.key.ScancodeWrapper): The current state of keyboard input.
+        """
         if keys[pygame.K_LEFT]:
             self.rotate_left()
         if keys[pygame.K_RIGHT]:
