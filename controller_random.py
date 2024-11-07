@@ -2,10 +2,11 @@ from controller import Controller
 from agent import Agent
 import random
 
-class RandomController(Controller):
+
+class ControllerRandom(Controller):
     def __init__(self, model, agent: Agent):
         super().__init__(model, agent)
-        self.move = 'same'
+        self.move = "same"
         self.choices = [direction for direction in range(0, 360, 45)]
         self.goal_direction = None
 
@@ -17,11 +18,11 @@ class RandomController(Controller):
 
         # Determine if left or right turn is needed
         if angle_diff > 0:
-            return 'left'
+            return "left"
         elif angle_diff < 0:
-            return 'right'
+            return "right"
         else:
-            return 'same'
+            return "same"
 
     def change_course(self, epsilon=0.05):
         if random.random() > epsilon:
@@ -43,28 +44,31 @@ class RandomController(Controller):
             self.goal_direction = goal
             self.move = self.turn_direction(direction, goal)
         else:
-            self.move = 'same'
+            self.move = "same"
 
     def move_agent(self):
         if not self.running:
             return
 
-        if self.agent.bump_sensor or (self.goal_direction is not None and self.agent.direction != self.goal_direction):
+        if self.agent.bump_sensor or (
+            self.goal_direction is not None
+            and self.agent.direction != self.goal_direction
+        ):
             direction = self.agent.direction
             self.move = self.turn_direction(direction, self.goal_direction)
 
-            if self.move == 'left':
+            if self.move == "left":
                 self.agent.rotate_left()
-            elif self.move == 'right':
+            elif self.move == "right":
                 self.agent.rotate_right()
-            
+
             # Check if the goal direction is reached
             if direction == self.goal_direction:
                 self.goal_direction = None
-                self.move = 'same'
+                self.move = "same"
         else:
             self.handle_input()
 
-            if self.move == 'same':
-                self.agent.move_forward()
+            if self.move == "same":
+                self.agent.try_move(move_forward=True)
                 self.change_course()  # Chance to deviate direction

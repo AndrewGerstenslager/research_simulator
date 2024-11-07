@@ -221,26 +221,22 @@ class Agent:
 
     def try_move(self, move_forward: bool = True) -> None:
         """
-        Attempt to move the agent, reducing speed if necessary to avoid collisions.
+        Attempt to move the agent. Sets bump sensor if collision is detected.
 
         Args:
             move_forward (bool): True if moving forward, False if moving backward.
         """
-        original_speed = self.linear_speed
-        while self.linear_speed > 0:
-            if not self.detect_collision(move_forward):
-                if move_forward:
-                    self.x += self.linear_speed * math.cos(math.radians(self.direction))
-                    self.y -= self.linear_speed * math.sin(math.radians(self.direction))
-                else:
-                    self.x -= self.linear_speed * math.cos(math.radians(self.direction))
-                    self.y += self.linear_speed * math.sin(math.radians(self.direction))
-                self.bump_sensor = False
-                break
-            self.linear_speed -= 0.1
-        self.linear_speed = original_speed
-        if self.linear_speed <= 0:
+        if self.detect_collision(move_forward):
             self.bump_sensor = True
+            return
+
+        if move_forward:
+            self.x += self.linear_speed * math.cos(math.radians(self.direction))
+            self.y -= self.linear_speed * math.sin(math.radians(self.direction))
+        else:
+            self.x -= self.linear_speed * math.cos(math.radians(self.direction))
+            self.y += self.linear_speed * math.sin(math.radians(self.direction))
+        self.bump_sensor = False
 
     def rotate_left(self) -> None:
         """

@@ -1,7 +1,11 @@
 import pygame
 import sys
 import json
-from tkinter import Tk, filedialog
+from tkinter import W, Tk, filedialog
+
+# Window dimensions
+WINDOW_WIDTH = 1200
+WINDOW_HEIGHT = 600
 from agent import Agent
 from wall import Wall
 from button import Button
@@ -14,7 +18,8 @@ from constants import (
     RED,
     BLACK,
 )
-from controller_random import RandomController
+from controller_basic import ControllerBasic
+from controller_random import ControllerRandom
 from text_input import TextInput
 
 
@@ -79,11 +84,15 @@ def set_max_speed():
     global clock_rate, clock, max_speed, text_surfaces, previous_clock_rate
     if max_speed:
         max_speed = False
-        clock_rate = previous_clock_rate
+        if previous_clock_rate > 0:  # Only restore if we had a valid previous rate
+            clock_rate = previous_clock_rate
+        else:
+            clock_rate = 60  # Default to 60 if no valid previous rate
         text_surfaces[6] = font.render(f"Clock Rate: {clock_rate}", True, BLACK)
     else:
         max_speed = True
-        previous_clock_rate = clock_rate
+        if clock_rate > 0:  # Only save the previous rate if it's valid
+            previous_clock_rate = clock_rate
         clock_rate = 0
         text_surfaces[6] = font.render("Clock Rate: MAX", True, BLACK)
 
@@ -95,16 +104,16 @@ pygame.init()
 clock = pygame.time.Clock()
 
 # Set up the display window
-screen = pygame.display.set_mode((1000, 600))
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Simulation Window")
 
 # Define core components of sim
 walls = []
 agent = Agent(x=400, y=300, direction=0, walls=walls)
-controller = RandomController(model=None, agent=agent)
+controller = ControllerRandom(model=None, agent=agent)
 
 # Load in walls
-load_walls("worlds/test3.json")
+load_walls("worlds/test1.json")
 
 # Define clock rate variable
 clock_rate = 60
@@ -116,7 +125,7 @@ max_speed = False
 buttons = [
     Button(850, 50, 100, 50, "Load Walls", load_walls_file_dialogue),
     Button(850, 110, 100, 50, "See LiDAR", toggle_laser),
-    Button(850, 170, 100, 50, "Toggle Controller", toggle_controller_running),
+    Button(850, 170, 100, 50, "Controller", toggle_controller_running),
     Button(850, 230, 100, 50, "Set Clock Rate", set_clock_rate),
     Button(850, 290, 100, 50, "Max Speed", set_max_speed),
 ]
@@ -211,7 +220,7 @@ while running:
     clock_rate_input.draw(screen)
 
     # Draw text
-    x, y = 1300, 400
+    x, y = WINDOW_WIDTH - 300, WINDOW_HEIGHT - 200
     for surface in text_surfaces:
         screen.blit(surface, (x, y))
         y += 20
