@@ -1,11 +1,6 @@
-import io
 import pygame
 import sys
-import os
 import json
-import numpy as np
-import matplotlib.pyplot as plt
-from PIL import Image
 from tkinter import Tk, filedialog
 from agent import Agent
 from wall import Wall
@@ -21,23 +16,6 @@ from constants import (
 )
 from controller_random import RandomController
 from text_input import TextInput
-
-from AlabiHippocampalModel.layers.head_direction_layer import HeadDirectionLayer
-from AlabiHippocampalModel.layers.boundary_vector_cell_layer import (
-    BoundaryVectorCellLayer,
-)
-
-
-# General function to convert any Matplotlib plot to a Pygame surface
-def plot_to_surface(fig):
-    """Converts a Matplotlib figure to a Pygame surface."""
-    buf = io.BytesIO()
-    fig.savefig(buf, format="png")  # Save plot to buffer as a PNG
-    plt.close(fig)  # Close the plot
-    buf.seek(0)
-    img = Image.open(buf)
-    img = img.resize((400, 300))  # Resize to fit the Pygame window space
-    return pygame.image.fromstring(img.tobytes(), img.size, img.mode)
 
 
 def load_walls_file_dialogue():
@@ -117,7 +95,7 @@ pygame.init()
 clock = pygame.time.Clock()
 
 # Set up the display window
-screen = pygame.display.set_mode((1600, 600))
+screen = pygame.display.set_mode((1000, 600))
 pygame.display.set_caption("Simulation Window")
 
 # Define core components of sim
@@ -133,14 +111,6 @@ clock_rate = 60
 previous_clock_rate = clock_rate
 max_speed = False
 
-hd_layer = HeadDirectionLayer(num_cells=8, theta_0=0.0, unit="degree")
-bvc_layer = BoundaryVectorCellLayer(
-    max_dist=300,
-    input_dim=360,
-    n_hd=8,
-    sigma_ang=90,
-    sigma_d=20,
-)
 
 # Define buttons
 buttons = [
@@ -172,67 +142,6 @@ text_surfaces = [
 ]
 
 
-# Define the RadioButton class
-class RadioButton:
-    def __init__(self, x, y, radius, label, action):
-        self.x = x
-        self.y = y
-        self.radius = radius
-        self.selected = False
-        self.label = label
-        self.action = action
-
-    def draw(self, surface):
-        pygame.draw.circle(
-            surface, BLACK, (self.x, self.y), self.radius, 2
-        )  # Outer circle
-        if self.selected:
-            pygame.draw.circle(
-                surface, BLACK, (self.x, self.y), self.radius - 5
-            )  # Filled circle if selected
-
-        label_surface = font.render(self.label, True, BLACK)
-        surface.blit(label_surface, (self.x + 20, self.y - 10))
-
-    def is_clicked(self, pos):
-        # Check if the radio button is clicked
-        return (self.x - pos[0]) ** 2 + (self.y - pos[1]) ** 2 <= self.radius**2
-
-
-# Define a function to deselect all radio buttons
-def deselect_all_radio_buttons(radio_buttons):
-    for button in radio_buttons:
-        button.selected = False
-
-
-# Define radio button actions
-def no_plot_action():
-    global selected_plot
-    selected_plot = "no_plot"
-
-
-def bvc_activation_action():
-    global selected_plot
-    selected_plot = "bvc_activation"
-
-
-def hdc_activation_action():
-    global selected_plot
-    selected_plot = "hdc_activation"
-
-
-# Define the radio buttons
-radio_buttons = [
-    RadioButton(870, 360, 10, "No Plot", no_plot_action),
-    RadioButton(870, 390, 10, "BVC Activation", bvc_activation_action),
-    RadioButton(870, 420, 10, "HDC Activation", hdc_activation_action),
-]
-
-# Initial selected plot
-selected_plot = "no_plot"
-radio_buttons[0].selected = True  # Default to "No Plot"
-
-
 # Main game loop
 running = True
 while running:
@@ -255,13 +164,6 @@ while running:
             for button in buttons:
                 if button.is_clicked(event.pos):
                     button.action()
-
-            # Check for radio button clicks
-            for radio_button in radio_buttons:
-                if radio_button.is_clicked(event.pos):
-                    deselect_all_radio_buttons(radio_buttons)
-                    radio_button.selected = True
-                    radio_button.action()
 
         clock_rate_input.handle_event(event)
 
@@ -300,35 +202,9 @@ while running:
     # Draw the agent
     agent.draw(screen)
 
-    # Display plot based on the selected radio button
-    if selected_plot == "bvc_activation":
-        fig = bvc_layer.plot_activation(
-            np.array(agent.lidar_ranges),
-            np.deg2rad(np.array(agent.lidar_angles)),
-            return_plot=True,
-        )
-        plot_surface = plot_to_surface(fig)
-        screen.blit(plot_surface, (1200, 100))
-    elif selected_plot == "hdc_activation":
-        activations = hd_layer.get_head_direction_activation(theta_i=agent.direction)
-        fig = hd_layer.plot_activation(plot_type="radial", return_plot=True)
-        plot_surface = plot_to_surface(fig)
-        screen.blit(plot_surface, (1200, 100))
-    else:
-        # Draw a light grey square with "No plot rendered" text
-        pygame.draw.rect(screen, (200, 200, 200), (1200, 100, 400, 300))  # Grey square
-        no_plot_surface = font.render("No plot rendered", True, BLACK)
-        screen.blit(
-            no_plot_surface, (1400 - no_plot_surface.get_width() // 2, 250)
-        )  # Center text
-
     # Draw the buttons
     for button in buttons:
         button.draw(screen)
-
-    # Draw radio buttons
-    for radio_button in radio_buttons:
-        radio_button.draw(screen)
 
     # Draw text input
     clock_rate_input.update()
