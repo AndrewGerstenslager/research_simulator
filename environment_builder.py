@@ -1,3 +1,4 @@
+# %%
 import pygame
 import json
 import sys
@@ -14,6 +15,7 @@ pygame.display.set_caption("Wall Editor")
 selected_wall = None
 copied_wall = None
 is_dragging = False
+walls = []
 
 
 def save_walls():
