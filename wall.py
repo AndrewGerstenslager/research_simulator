@@ -65,12 +65,30 @@ class Wall:
 
         return min_distance if min_distance != float("inf") else None
 
-    def draw(self, screen):
+    def draw(self, screen, draw_center=False):
         pygame.draw.rect(screen, BROWN, self.rect)  # Fill the wall with brown
         edge_color = BLUE if self.selected else BLACK
         pygame.draw.rect(screen, edge_color, self.rect, 2)  # Draw edges
         if self.selected:
             self.draw_handles(screen)
+
+        # Draw X in center if specified
+        if draw_center:
+            center_x = self.rect.x + self.rect.width // 2
+            center_y = self.rect.y + self.rect.height // 2
+            size = 5
+            pygame.draw.line(
+                screen,
+                BLACK,
+                (center_x - size, center_y - size),
+                (center_x + size, center_y + size),
+            )
+            pygame.draw.line(
+                screen,
+                BLACK,
+                (center_x - size, center_y + size),
+                (center_x + size, center_y - size),
+            )
 
     def draw_handles(self, screen):
         handles = self.get_handles()
@@ -95,32 +113,70 @@ class Wall:
         if not self.resizing:
             return
         x, y = mouse_pos
+
+        # Store original rect for reverting if needed
+        original_rect = self.rect.copy()
+
+        # Minimum size for walls
+        MIN_SIZE = 10
+
+        # Handle different resize directions
         if self.resize_dir == "top-left":
-            self.rect.width += self.rect.x - x
-            self.rect.height += self.rect.y - y
-            self.rect.x = x
-            self.rect.y = y
+            new_width = self.rect.right - x
+            new_height = self.rect.bottom - y
+            if new_width >= MIN_SIZE and new_height >= MIN_SIZE:
+                self.rect.x = x
+                self.rect.y = y
+                self.rect.width = new_width
+                self.rect.height = new_height
         elif self.resize_dir == "top-right":
-            self.rect.width = x - self.rect.x
-            self.rect.height += self.rect.y - y
-            self.rect.y = y
+            new_width = x - self.rect.x
+            new_height = self.rect.bottom - y
+            if new_width >= MIN_SIZE and new_height >= MIN_SIZE:
+                self.rect.y = y
+                self.rect.width = new_width
+                self.rect.height = new_height
         elif self.resize_dir == "bottom-left":
-            self.rect.width += self.rect.x - x
-            self.rect.x = x
-            self.rect.height = y - self.rect.y
+            new_width = self.rect.right - x
+            new_height = y - self.rect.y
+            if new_width >= MIN_SIZE and new_height >= MIN_SIZE:
+                self.rect.x = x
+                self.rect.width = new_width
+                self.rect.height = new_height
         elif self.resize_dir == "bottom-right":
-            self.rect.width = x - self.rect.x
-            self.rect.height = y - self.rect.y
+            new_width = x - self.rect.x
+            new_height = y - self.rect.y
+            if new_width >= MIN_SIZE and new_height >= MIN_SIZE:
+                self.rect.width = new_width
+                self.rect.height = new_height
         elif self.resize_dir == "top-center":
-            self.rect.height += self.rect.y - y
-            self.rect.y = y
+            new_height = self.rect.bottom - y
+            if new_height >= MIN_SIZE:
+                self.rect.y = y
+                self.rect.height = new_height
         elif self.resize_dir == "bottom-center":
-            self.rect.height = y - self.rect.y
+            new_height = y - self.rect.y
+            if new_height >= MIN_SIZE:
+                self.rect.height = new_height
         elif self.resize_dir == "left-center":
-            self.rect.width += self.rect.x - x
-            self.rect.x = x
+            new_width = self.rect.right - x
+            if new_width >= MIN_SIZE:
+                self.rect.x = x
+                self.rect.width = new_width
         elif self.resize_dir == "right-center":
-            self.rect.width = x - self.rect.x
+            new_width = x - self.rect.x
+            if new_width >= MIN_SIZE:
+                self.rect.width = new_width
+
+        # Check if the new position/size is within boundaries
+        if (
+            self.rect.left < 0
+            or self.rect.right > 800  # Assuming RIGHT_BOUNDARY is 800
+            or self.rect.top < 0
+            or self.rect.bottom > 600
+        ):  # Assuming BOTTOM_BOUNDARY is 600
+            # Revert changes if outside boundaries
+            self.rect = original_rect
 
     def to_dict(self):
         return {

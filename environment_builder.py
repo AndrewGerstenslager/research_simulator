@@ -6,11 +6,55 @@ from tkinter import Tk, filedialog
 from wall import Wall
 from button import Button
 from constants import *
+from text_input import TextInput
 
 pygame.init()
 
+# Create text inputs for wall properties
+text_inputs = {
+    "x": TextInput(1000, 50, 150, 30, ""),
+    "y": TextInput(1000, 120, 150, 30, ""),
+    "width": TextInput(1000, 190, 150, 30, ""),
+    "height": TextInput(1000, 260, 150, 30, ""),
+}
+
+
+def apply_wall_properties():
+    global selected_wall
+    if selected_wall:
+        try:
+            # Store original values
+            original_rect = selected_wall.rect.copy()
+
+            # Get new values
+            x = int(text_inputs["x"].text)
+            y = int(text_inputs["y"].text)
+            width = int(text_inputs["width"].text)
+            height = int(text_inputs["height"].text)
+
+            # Apply new values
+            selected_wall.rect.x = x
+            selected_wall.rect.y = y
+            selected_wall.rect.width = width
+            selected_wall.rect.height = height
+
+            # Check boundaries
+            if (
+                selected_wall.rect.left < LEFT_BOUNDARY
+                or selected_wall.rect.right > RIGHT_BOUNDARY
+                or selected_wall.rect.top < TOP_BOUNDARY
+                or selected_wall.rect.bottom > BOTTOM_BOUNDARY
+                or width < 10
+                or height < 10
+            ):  # Minimum size constraints
+                # Revert if outside boundaries
+                selected_wall.rect = original_rect
+        except ValueError:
+            pass  # Handle invalid input gracefully
+
+
 # Screen setup
-screen = pygame.display.set_mode((1000, 600))
+screen = pygame.display.set_mode((1200, 600))
 pygame.display.set_caption("Wall Editor")
 selected_wall = None
 copied_wall = None
@@ -56,6 +100,9 @@ def delete_selected_wall():
 
 
 def handle_mouse_events(event):
+    # Handle text input events
+    for text_input in text_inputs.values():
+        text_input.handle_event(event)
     global selected_wall, copied_wall, is_dragging
     if event.type == pygame.MOUSEBUTTONDOWN:
         is_dragging = False
@@ -100,8 +147,24 @@ def handle_mouse_events(event):
             selected_wall and event.buttons[0]
         ):  # Check if the left mouse button is held down
             is_dragging = True
+            # Store original position
+            original_x = selected_wall.rect.x
+            original_y = selected_wall.rect.y
+
+            # Try to move
             selected_wall.rect.x += event.rel[0]
             selected_wall.rect.y += event.rel[1]
+
+            # Check boundaries
+            if (
+                selected_wall.rect.left < LEFT_BOUNDARY
+                or selected_wall.rect.right > RIGHT_BOUNDARY
+                or selected_wall.rect.top < TOP_BOUNDARY
+                or selected_wall.rect.bottom > BOTTOM_BOUNDARY
+            ):
+                # Revert if outside boundaries
+                selected_wall.rect.x = original_x
+                selected_wall.rect.y = original_y
 
 
 def handle_keyboard_events(event):
@@ -149,6 +212,7 @@ def copy_wall():
 
 # Create buttons
 buttons = [
+    Button(1000, 330, 150, 50, "Apply Changes", apply_wall_properties),
     Button(850, 50, 100, 50, "Add Wall", spawn_wall),
     Button(850, 110, 100, 50, "Copy Wall", copy_wall),
     Button(
@@ -192,7 +256,7 @@ while running:
 
     # Draw the walls
     for wall in walls:
-        wall.draw(screen)
+        wall.draw(screen, draw_center=True)
 
     # Draw the buttons
     for button in buttons:
@@ -200,6 +264,43 @@ while running:
             DISABLED_GRAY if button.text == "Paste Wall" and not copied_wall else BLACK
         )
         button.draw(screen)
+
+    # Draw text input labels
+    font = pygame.font.Font(None, 24)
+    labels = ["Center X:", "Center Y:", "Width:", "Height:"]
+    y_positions = [30, 100, 170, 240]
+
+    for label, y_pos in zip(labels, y_positions):
+        text_surface = font.render(label, True, BLACK)
+        screen.blit(text_surface, (1000, y_pos))
+
+    # Update text inputs with wall properties only when not active
+    if selected_wall:
+        for key, text_input in text_inputs.items():
+            if not text_input.active:
+                if key == "x":
+                    text_input.text = str(selected_wall.rect.centerx)
+                elif key == "y":
+                    text_input.text = str(selected_wall.rect.centery)
+                elif key == "width":
+                    text_input.text = str(selected_wall.rect.width)
+                elif key == "height":
+                    text_input.text = str(selected_wall.rect.height)
+                text_input.txt_surface = text_input.font.render(
+                    text_input.text, True, text_input.color
+                )
+    else:
+        # Clear text inputs when no wall is selected
+        for text_input in text_inputs.values():
+            if not text_input.active:
+                text_input.text = ""
+                text_input.txt_surface = text_input.font.render(
+                    text_input.text, True, text_input.color
+                )
+
+    # Draw text inputs
+    for text_input in text_inputs.values():
+        text_input.draw(screen)
 
     # Update the display
     pygame.display.flip()
