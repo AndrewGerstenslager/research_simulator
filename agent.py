@@ -24,6 +24,7 @@ class Agent:
         direction: float,
         walls: list,
         num_lidar_beams: int = 360,
+        body_radius=20,
     ) -> None:
         """
         Initialize the Agent.
@@ -39,7 +40,7 @@ class Agent:
         self.y = y
         self.direction = direction  # in degrees
         self.linear_speed = 10
-        self.body_radius = 20
+        self.body_radius = body_radius
         self.angular_speed = 5
         self.lidar_max_range = 2000
         self.lidar_angles = [

@@ -104,7 +104,7 @@ def apply_wall_properties():
 
 # Screen setup
 screen = pygame.display.set_mode((1200, 600))
-pygame.display.set_caption("Wall Editor")
+pygame.display.set_caption("World Editor")
 selected_wall = None
 copied_wall = None
 is_dragging = False
@@ -156,9 +156,12 @@ def load_environment():
             if world_data["agent"]:
                 agent_data = world_data["agent"]["agent"]
                 agent = Agent(
-                    agent_data["x"], agent_data["y"], agent_data["direction"], walls
+                    agent_data["x"],
+                    agent_data["y"],
+                    agent_data["direction"],
+                    walls,
+                    body_radius=agent_data["radius"],
                 )
-                agent.body_radius = agent_data["radius"]
             else:
                 agent = None
     root.destroy()
@@ -203,11 +206,41 @@ def handle_mouse_events(event):
                 button.action()
                 return
 
-        # Check for agent selection
+        # Check for agent selection and handles
         if agent:
             mouse_x, mouse_y = event.pos
+
+            # Check if clicking on agent body
             distance = math.sqrt((mouse_x - agent.x) ** 2 + (mouse_y - agent.y) ** 2)
-            if distance <= agent.body_radius:
+
+            # Check if clicking on any of the handles when agent is selected
+            clicking_handle = False
+            if selected_agent:
+                # Check resize handles
+                resize_points = [
+                    (agent.x + agent.body_radius, agent.y),  # Right
+                    (agent.x - agent.body_radius, agent.y),  # Left
+                    (agent.x, agent.y + agent.body_radius),  # Bottom
+                    (agent.x, agent.y - agent.body_radius),  # Top
+                ]
+                for point in resize_points:
+                    if math.dist((mouse_x, mouse_y), point) < 8:
+                        clicking_handle = True
+                        break
+
+                # Check rotation handle
+                rotation_length = agent.body_radius + 40
+                rotation_x = agent.x + rotation_length * math.cos(
+                    math.radians(agent.direction - 90)
+                )
+                rotation_y = agent.y + rotation_length * math.sin(
+                    math.radians(agent.direction - 90)
+                )
+                if math.dist((mouse_x, mouse_y), (rotation_x, rotation_y)) < 11:
+                    clicking_handle = True
+
+            # Select or deselect based on where we clicked
+            if distance <= agent.body_radius or clicking_handle:
                 selected_agent = agent
                 selected_wall = None
                 for wall in walls:
@@ -244,24 +277,95 @@ def handle_mouse_events(event):
         if selected_wall:
             selected_wall.resizing = False
             selected_wall.resize_dir = None
+        if agent:
+            agent.is_rotating = False
         is_dragging = False
     elif event.type == pygame.MOUSEMOTION:
         if selected_wall and selected_wall.resizing:
             selected_wall.handle_resize(event.pos)
         elif selected_agent and event.buttons[0]:
-            # Move agent with boundary checking
-            new_x = event.pos[0]
-            new_y = event.pos[1]
+            mouse_x, mouse_y = event.pos
 
-            # Ensure agent stays within boundaries
-            new_x = max(
-                LEFT_BOUNDARY + agent.body_radius,
-                min(RIGHT_BOUNDARY - agent.body_radius, new_x),
+            # Check for rotation handle
+            rotation_length = agent.body_radius + 40
+            rotation_x = agent.x + rotation_length * math.sin(
+                math.radians(agent.direction)
             )
-            new_y = max(
-                TOP_BOUNDARY + agent.body_radius,
-                min(BOTTOM_BOUNDARY - agent.body_radius, new_y),
+            rotation_y = agent.y - rotation_length * math.cos(
+                math.radians(agent.direction)
             )
+            rotation_handle_rect = pygame.Rect(rotation_x - 8, rotation_y - 8, 16, 16)
+
+            # Check for resize handles
+            resize_points = [
+                (agent.x + agent.body_radius, agent.y),  # Right
+                (agent.x - agent.body_radius, agent.y),  # Left
+                (agent.x, agent.y + agent.body_radius),  # Bottom
+                (agent.x, agent.y - agent.body_radius),  # Top
+            ]
+
+            # Initialize new position to current position
+            new_x = agent.x
+            new_y = agent.y
+
+            # Track if we're near any special handles
+            near_rotation_handle = (
+                math.dist((mouse_x, mouse_y), (rotation_x, rotation_y)) < 11
+            )
+            near_resize_handle = any(
+                math.dist((mouse_x, mouse_y), point) < 8 for point in resize_points
+            )
+
+            # If we're near the rotation handle or already rotating
+            if near_rotation_handle or getattr(agent, "is_rotating", False):
+                # Set rotating mode
+                agent.is_rotating = True
+                # Calculate rotation based on mouse position relative to agent center
+                dx = mouse_x - agent.x
+                dy = mouse_y - agent.y
+                angle = math.degrees(math.atan2(dx, -dy))
+                agent.direction = angle % 360
+
+            # If near resize handles
+            elif any(
+                math.dist((mouse_x, mouse_y), point) < 8 for point in resize_points
+            ):
+                # Calculate distance from agent center to mouse
+                new_radius = math.dist((mouse_x, mouse_y), (agent.x, agent.y))
+                new_radius = max(10, min(new_radius, 50))  # Clamp between 10 and 50
+
+                # Check if new radius would cause collision or go out of bounds
+                if (
+                    agent.x - new_radius >= LEFT_BOUNDARY
+                    and agent.x + new_radius <= RIGHT_BOUNDARY
+                    and agent.y - new_radius >= TOP_BOUNDARY
+                    and agent.y + new_radius <= BOTTOM_BOUNDARY
+                ):
+                    # Check for wall collisions with new radius
+                    can_resize = True
+                    for wall in walls:
+                        if wall.is_colliding(agent.x, agent.y, new_radius):
+                            can_resize = False
+                            break
+
+                    if can_resize:
+                        agent.body_radius = new_radius
+
+            # If clicking on agent body (for moving)
+            else:
+                # Move agent with boundary checking
+                new_x = mouse_x
+                new_y = mouse_y
+
+                # Ensure agent stays within boundaries
+                new_x = max(
+                    LEFT_BOUNDARY + agent.body_radius,
+                    min(RIGHT_BOUNDARY - agent.body_radius, new_x),
+                )
+                new_y = max(
+                    TOP_BOUNDARY + agent.body_radius,
+                    min(BOTTOM_BOUNDARY - agent.body_radius, new_y),
+                )
 
             # Check for wall collisions
             can_move = True
@@ -394,6 +498,35 @@ while running:
     # Draw the agent if it exists
     if agent:
         agent.draw(screen)
+        # Draw resize and rotation handles if selected
+        if selected_agent:
+            # Draw resize circles at cardinal points
+            resize_points = [
+                (agent.x + agent.body_radius, agent.y),  # Right
+                (agent.x - agent.body_radius, agent.y),  # Left
+                (agent.x, agent.y + agent.body_radius),  # Bottom
+                (agent.x, agent.y - agent.body_radius),  # Top
+            ]
+            for point in resize_points:
+                pygame.draw.circle(screen, BLACK, (int(point[0]), int(point[1])), 5)
+                # Draw a slightly larger highlight circle
+                pygame.draw.circle(screen, BLACK, (int(point[0]), int(point[1])), 8, 1)
+
+            # Draw rotation handle
+            rotation_length = agent.body_radius + 40
+            rotation_x = agent.x + rotation_length * math.sin(
+                math.radians(agent.direction)
+            )
+            rotation_y = agent.y - rotation_length * math.cos(
+                math.radians(agent.direction)
+            )
+            # Draw line from agent center to rotation handle
+            pygame.draw.line(
+                screen, BLACK, (agent.x, agent.y), (rotation_x, rotation_y), 2
+            )
+            # Draw rotation handle circle with highlight
+            pygame.draw.circle(screen, BLACK, (int(rotation_x), int(rotation_y)), 8)
+            pygame.draw.circle(screen, BLACK, (int(rotation_x), int(rotation_y)), 11, 1)
 
     # Draw the buttons
     for button in buttons:

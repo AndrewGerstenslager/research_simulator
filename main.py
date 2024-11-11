@@ -55,11 +55,14 @@ def load_environment(filename):
             if world_data["agent"]:
                 agent_data = world_data["agent"]["agent"]
                 agent = Agent(
-                    agent_data["x"], agent_data["y"], agent_data["direction"], walls
+                    x=agent_data["x"],
+                    y=agent_data["y"],
+                    direction=agent_data["direction"],
+                    walls=walls,
+                    body_radius=agent_data["radius"],
                 )
-                agent.body_radius = agent_data["radius"]
             else:
-                agent = Agent(200, 200, 0, walls)
+                agent = Agent(x=200, y=200, direction=0, walls=walls, body_radius=20)
 
     return walls, agent
 
