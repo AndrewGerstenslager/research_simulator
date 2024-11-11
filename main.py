@@ -23,7 +23,7 @@ from controller_random import ControllerRandom
 from text_input import TextInput
 
 
-def load_walls_file_dialogue():
+def load_environment_file_dialogue():
     """
     Uses the tkinter file dialogue to select the file to open.
     Calls open_walls after file selected.
@@ -31,25 +31,37 @@ def load_walls_file_dialogue():
     global root
     root = Tk()
     root.withdraw()
-    load_walls(
+    load_environment(
         filedialog.askopenfilename(
             defaultextension=".json", filetypes=[("JSON files", "*.json")]
         )
     )
+    root.destroy()
 
 
-def load_walls(filename):
+def load_environment(filename):
     """
     Takes the file name and loads in the file.
     Puts all wall objects into the wall object and updates agent's internal memory.
     """
-    global agent
-    global walls
     if filename:
         with open(filename, "r") as f:
-            walls = [Wall.from_dict(data) for data in json.load(f)]
-        walls = walls
-        agent.walls = walls
+            world_data = json.load(f)
+            # Load walls
+            walls = [
+                Wall.from_dict(wall_data["wall"]) for wall_data in world_data["walls"]
+            ]
+            # Load agent if it exists
+            if world_data["agent"]:
+                agent_data = world_data["agent"]["agent"]
+                agent = Agent(
+                    agent_data["x"], agent_data["y"], agent_data["direction"], walls
+                )
+                agent.body_radius = agent_data["radius"]
+            else:
+                agent = Agent(200, 200, 0, walls)
+
+    return walls, agent
 
 
 def toggle_laser():
@@ -107,13 +119,11 @@ clock = pygame.time.Clock()
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
 pygame.display.set_caption("Simulation Window")
 
-# Define core components of sim
-walls = []
-agent = Agent(x=400, y=300, direction=0, walls=walls)
+# Load in walls and agent
+walls, agent = load_environment("worlds/test1.json")
+
 controller = ControllerRandom(model=None, agent=agent)
 
-# Load in walls
-load_walls("worlds/test1.json")
 
 # Define clock rate variable
 clock_rate = 60
@@ -123,7 +133,7 @@ max_speed = False
 
 # Define buttons
 buttons = [
-    Button(850, 50, 100, 50, "Load Walls", load_walls_file_dialogue),
+    Button(850, 50, 100, 50, "Load World", load_environment_file_dialogue),
     Button(850, 110, 100, 50, "See LiDAR", toggle_laser),
     Button(850, 170, 100, 50, "Controller", toggle_controller_running),
     Button(850, 230, 100, 50, "Set Clock Rate", set_clock_rate),
@@ -136,7 +146,7 @@ clock_rate_input = TextInput(x=960, y=230, width=50, height=50)
 # Define on-screen text that renders in a block
 font = pygame.font.Font(None, 24)
 text_surfaces = [
-    font.render("Load Wall Shortcut: u", True, BLACK),
+    font.render("Load World Shortcut: u", True, BLACK),
     font.render("See LiDAR Shortcut: i", True, BLACK),
     font.render("Quit sim shortcut: q", True, BLACK),
     font.render("Toggle Controller: c", True, BLACK),
